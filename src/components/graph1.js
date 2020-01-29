@@ -1,75 +1,150 @@
 import React, { Component } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  PieChart, Pie, Sector, Cell,
 } from 'recharts';
 import GridLayout from 'react-grid-layout';
-
+import axios from 'axios';
+import WordCloud from "react-d3-cloud";
+import randomColor from "randomcolor";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+} from 'recharts';
 export class Graph1 extends Component {
 
     constructor() {
         super();
+        this.state = { articlesperCountry: [] ,wordcount : [], articlesperYear : [] };
+
         
     };
 
+    componentWillMount() {
+      axios.get('/articles/country', {
+         }).then(response => {
+          console.log(response);
 
+          this.setState({
+            articlesperCountry: response.data,
+          })
+      }).catch(error => {
+          console.log(error);
+      });
+
+      axios.get('/articles/year', {
+      }).then(response => {
+        console.log(response);
+
+       this.setState({
+         articlesperYear: response.data,
+       })
+   }).catch(error => {
+       console.log(error);
+   })
+
+   axios.get('/wordscount', {
+  }).then(response => {
+    console.log(response);
+
+   this.setState({
+     wordcount: response.data,
+   })
+}).catch(error => {
+   console.log(error);
+})
+
+
+  }
 
 
     render() {
-        const data = [
-            {
-              name: 'Page A', uv: 4000, pv: 2400, amt: 2400,
-            },
-            {
-              name: 'Page B', uv: 3000, pv: 1398, amt: 2210,
-            },
-            {
-              name: 'Page C', uv: 2000, pv: 9800, amt: 2290,
-            },
-            {
-              name: 'Page D', uv: 2780, pv: 3908, amt: 2000,
-            },
-            {
-              name: 'Page E', uv: 1890, pv: 4800, amt: 2181,
-            },
-            {
-              name: 'Page F', uv: 2390, pv: 3800, amt: 2500,
-            },
-            {
-              name: 'Page G', uv: 3490, pv: 4300, amt: 2100,
-            },
-          ];
+   
+      const fontSizeMapper = word => Math.log2(word.value) * 5;
        
           var layout = [
-            {i: 'a', x: 0, y: 0, w: 1, h: 2, static: true},
-            {i: 'b', x: 1, y: 0, w: 3, h: 2, minW: 2, maxW: 4},
-            {i: 'c', x: 4, y: 0, w: 1, h: 2}
+            {i: 'a', x: 0, y: 0, w: 1, h: 2},
+            {i: 'b', x: 5, y: 1, w: 5, h: 5},
+            {i: 'c', x: 10, y: 2, w: 1, h: 2}
           ];
+          const data = [
+          ];
+          
+          this.state.wordcount.forEach(element => {
+          data.push({text:element._1, value : element._2*5});        
+          });
+          const data2 = [
+          ];
+          this.state.articlesperCountry.forEach(element => {
+            data2.push({name:element._1, value : element._2});        
+            });
+          
+
+            this.state.articlesperYear.sort(function(a, b){
+              return parseInt(a._1)-parseInt(b._1)
+            }
+              );
+          
 
 
+
+const RADIAN = Math.PI / 180;
+const renderCustomizedLabel = ({
+  cx, cy, midAngle, innerRadius, outerRadius, percent, index, name
+}) => {
+   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  
+  return (
+    <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
+      {`${name}`}
+    </text>
+  );
+};
         return (
 
-            <GridLayout className="layout" layout={layout} cols={12} rowHeight={30} width={1200}>
+            <GridLayout className="layout" layout={layout} cols={10} rowHeight={30} width={1200}>
             <div key="a">
-                
-          <BarChart
-          width={500}
-          height={300}
-          data={data}
-          margin={{
-            top: 5, right: 30, left: 20, bottom: 5,
-          }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="pv" fill="#8884d8" />
-          <Bar dataKey="uv" fill="#82ca9d" />
-        </BarChart>
+            <WordCloud data={data} fontSizeMapper={fontSizeMapper}  />
+
             </div>
-            <div key="b">b</div>
-            <div key="c">c</div>
+            <div key="b">
+            <PieChart width={500} height={500}>
+        <Pie
+          data={data2}
+          cx={200}
+          cy={200}
+          labelLine={true}
+          label={renderCustomizedLabel}
+          outerRadius={200}
+          fill="#8884d8"
+          dataKey="value"
+        >
+          {
+            data.map((entry, index) => <Cell key={`cell-${index}`} fill={randomColor()} />)
+          }
+        </Pie>
+      </PieChart>
+            </div>
+            <div key="c">
+            <LineChart
+        width={500}
+        height={300}
+        data={this.state.articlesperYear}
+        margin={{
+          top: 5, right: 30, left: 20, bottom: 5,
+        }}
+      >
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="_1" />
+        <YAxis />
+        <Tooltip />
+        <Legend />
+        <Line type="monotone" dataKey="_2" stroke="#8884d8" activeDot={{ r: 8 }} />
+      </LineChart>
+
+
+              
+            </div>
           </GridLayout>
         );
     }
